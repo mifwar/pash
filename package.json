@@ -1,0 +1,58 @@
+{
+  "name": "@mifwar/pash",
+  "version": "0.1.2",
+  "description": "TUI browser for the Unix password store with transient clipboard support.",
+  "type": "module",
+  "license": "MIT",
+  "author": "mifwar",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mifwar/pash.git"
+  },
+  "bugs": {
+    "url": "https://github.com/mifwar/pash/issues"
+  },
+  "homepage": "https://github.com/mifwar/pash#readme",
+  "keywords": [
+    "tui",
+    "terminal",
+    "pass",
+    "password-store",
+    "gpg",
+    "cli",
+    "ink",
+    "clipboard"
+  ],
+  "bin": {
+    "pash": "dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "dev": "tsx src/cli.ts",
+    "build": "tsc -p tsconfig.build.json",
+    "postbuild": "chmod +x dist/cli.js",
+    "prepublishOnly": "npm run build",
+    "format": "prettier . --write",
+    "format:check": "prettier . --check",
+    "demo": "PASSWORD_STORE_DIR=./testdata/store PASH_PASSC=./testdata/scripts/fake-passc.sh PASH_PASS=./testdata/scripts/fake-pass.sh tsx src/cli.ts"
+  },
+  "dependencies": {
+    "fuse.js": "^7.0.0",
+    "ink": "^5.1.0",
+    "meow": "^13.2.0",
+    "react": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/react": "^18.3.0",
+    "prettier": "^3.3.3",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

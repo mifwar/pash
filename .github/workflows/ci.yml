@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, ubuntu-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+      - run: npm ci
+      - run: npm run format:check
+      - run: npm run build
+      - name: Smoke test
+        shell: bash
+        run: |
+          node dist/cli.js --help
+      - name: Demo (macOS only)
+        if: matrix.os == 'macos-latest'
+        shell: bash
+        run: |
+          PASH_PASS=./testdata/scripts/fake-pass.sh \
+          PASH_PASSC=./testdata/scripts/fake-passc.sh \
+          timeout 2 node dist/cli.js --store ./testdata/store < /dev/null || true
