@@ -3,6 +3,23 @@
 Deviations from `pash.md` spec, with reasoning. The spec is the source of
 truth — anything here is a deliberate trim or change for v0.1.
 
+## UI rework
+
+- **Tree shows names, not paths.** The indentation already carries the
+  parent; repeating `cloud/aws/` on every row wasted half the pane.
+- **Search is flat and ranked.** While a filter is active the list
+  shows full entry paths in fuse score order with matched characters
+  highlighted (fzf-style). Groups are excluded and collapsed groups no
+  longer hide matches.
+- **Fixed layout.** Header (1) + body + footer (2: prompt/toast, key
+  hints). Toasts and prompts no longer shift the list.
+- **No emoji glyphs.** 🔒 rendered with inconsistent cell widths and
+  left stale characters behind; rows are plain text now.
+- **Preview divider, not a box.** A single left rule that turns red
+  while plaintext is visible. Group rows show their entry count.
+- **Help replaces the body** (two columns when short) instead of being
+  appended under it and pushing the layout off screen.
+
 ## v0.1.2: Tree order fix
 
 The walk function used to emit groups _after_ recursing into their

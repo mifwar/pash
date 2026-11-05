@@ -1,26 +1,21 @@
 import React from "react"
-import { Box, Text } from "ink"
+import { Text } from "ink"
 import type { Toast as ToastT } from "../types/entry.js"
 import { theme } from "../utils/theme.js"
 
-interface Props {
-  toast: ToastT | null
-  width: number
-}
+const STYLE = {
+  success: { icon: "✓", color: theme.green },
+  error: { icon: "✗", color: theme.red },
+  info: { icon: "•", color: theme.blue },
+} as const
 
-/**
- * Transient status message. Lives at the bottom, above the help bar.
- * Renders nothing when no toast is set so it doesn't reserve space.
- */
-export function Toast({ toast, width }: Props) {
+/** Transient status message, shown at the right of the footer. */
+export function Toast({ toast }: { toast: ToastT | null }) {
   if (!toast) return null
-
-  const color =
-    toast.kind === "success" ? theme.green : toast.kind === "error" ? theme.red : theme.blue
-
+  const { icon, color } = STYLE[toast.kind]
   return (
-    <Box paddingX={1} width={width}>
-      <Text color={color}>{toast.text}</Text>
-    </Box>
+    <Text color={color} wrap="truncate">
+      {icon} {toast.text}
+    </Text>
   )
 }

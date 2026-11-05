@@ -41,8 +41,8 @@ pash --help          # full key reference
 
 The right pane shows **non-secret frontmatter only** by default
 (login, url, email, otpauth, notes). The password is masked as
-`•••••••• (N chars)`. Hit `p` to reveal — the border turns red while
-plaintext is on screen.
+`••••••••  N chars`. Hit `p` to reveal — the pane divider turns red
+while plaintext is on screen. Moving to another entry hides it again.
 
 The metadata-only default means you can browse, disambiguate, and
 copy without ever exposing a secret to your terminal. `Enter` is the
