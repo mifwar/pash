@@ -1,47 +1,28 @@
 import React from "react"
+import { homedir } from "os"
 import { Box, Text } from "ink"
 import { theme } from "../utils/theme.js"
 
 interface Props {
   storePath: string
-  visible: number
-  total: number
-  filtered: boolean
+  /** Right-hand status, e.g. "3/7" or "2 matches". */
+  status: string
   error: string | null
 }
 
-/**
- * Top status line: app name, store path, entry counts, error state.
- *
- * Always 1 line tall. Errors replace the count line in red.
- */
-export function Header({ storePath, visible, total, filtered, error }: Props) {
-  if (error) {
-    return (
-      <Box paddingX={1} flexDirection="row" justifyContent="space-between">
-        <Text>
-          <Text color={theme.lavender} bold>
-            pash
-          </Text>
-          <Text color={theme.overlay}> — {storePath}</Text>
-        </Text>
-        <Text color={theme.red}>{error}</Text>
-      </Box>
-    )
-  }
-
+/** Top line: app name + store path on the left, status or error on the right. */
+export function Header({ storePath, status, error }: Props) {
+  const home = homedir()
+  const shown = storePath.startsWith(home) ? "~" + storePath.slice(home.length) : storePath
   return (
-    <Box paddingX={1} flexDirection="row" justifyContent="space-between">
-      <Text>
+    <Box paddingX={1} justifyContent="space-between">
+      <Text wrap="truncate">
         <Text color={theme.lavender} bold>
           pash
         </Text>
-        <Text color={theme.overlay}> — {storePath}</Text>
+        <Text color={theme.overlay}> {shown}</Text>
       </Text>
-      <Text color={theme.subtext}>
-        {visible}
-        {filtered ? ` of ${total}` : ""} {visible === 1 ? "entry" : "entries"}
-      </Text>
+      {error ? <Text color={theme.red}>{error}</Text> : <Text color={theme.overlay}>{status}</Text>}
     </Box>
   )
 }

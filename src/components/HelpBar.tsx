@@ -7,8 +7,8 @@ import type { ViewMode } from "../types/entry.js"
 const HINTS: Record<ViewMode, Array<[string, string]>> = {
   normal: [
     ["j/k", "move"],
-    ["Enter", "copy"],
-    ["p", "preview"],
+    ["⏎", "copy"],
+    ["p", "reveal"],
     ["/", "filter"],
     ["i", "insert"],
     ["R", "reload"],
@@ -17,21 +17,21 @@ const HINTS: Record<ViewMode, Array<[string, string]>> = {
   ],
   filter: [
     ["↑/↓", "move"],
-    ["Enter", "apply"],
+    ["⏎", "apply"],
     ["Esc", "clear"],
   ],
   insert: [
-    ["Enter", "generate"],
+    ["⏎", "generate"],
     ["Esc", "cancel"],
   ],
   help: [["? / Esc", "close help"]],
 }
 
 /** Bottom keybinding strip for the current mode. */
-export function HelpBar({ mode, width }: { mode: ViewMode; width: number }) {
+export function HelpBar({ mode }: { mode: ViewMode }) {
   return (
-    <Box paddingX={1} width={width}>
-      <Text color={theme.overlay}>
+    <Box paddingX={1}>
+      <Text color={theme.overlay} wrap="truncate">
         {HINTS[mode].map(([key, action], i) => (
           <Text key={key}>
             {i > 0 && " · "}

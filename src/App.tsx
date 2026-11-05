@@ -13,7 +13,7 @@ import { initialState, isHidden, reducer } from "./state.js"
 import { loadStore } from "./utils/store.js"
 import { passGenerate } from "./utils/pass.js"
 import { resolvePassc, transientCopy } from "./utils/clipboard.js"
-import { buildFuse, applyFilter } from "./utils/filter.js"
+import { buildFuse, search, type Row } from "./utils/filter.js"
 import { theme } from "./utils/theme.js"
 import type { Toast as ToastT } from "./types/entry.js"
 
@@ -52,25 +52,27 @@ export function App({ onExit, storeRoot }: Props) {
     reload()
   }, [reload])
 
-  // Visible list = fuzzy filter, then hide rows under collapsed groups.
+  // Searching: flat ranked results. Otherwise: the tree minus collapsed subtrees.
+  const searching = state.filterQuery !== ""
   const fuse = useMemo(() => buildFuse(state.entries), [state.entries])
-  const visibleEntries = useMemo(
+  const rows = useMemo<Row[]>(
     () =>
-      applyFilter(fuse, state.entries, state.filterQuery).filter(
-        (e) => !isHidden(state.collapsed, e.parent)
-      ),
-    [fuse, state.entries, state.filterQuery, state.collapsed]
+      searching
+        ? search(fuse, state.filterQuery)
+        : state.entries
+            .filter((e) => !isHidden(state.collapsed, e.parent))
+            .map((entry) => ({ entry })),
+    [searching, fuse, state.entries, state.filterQuery, state.collapsed]
   )
-  const selected = visibleEntries[state.selectedIndex] ?? null
+  const selected = rows[state.selectedIndex]?.entry ?? null
   const selectedEntryPath = selected?.kind === "entry" ? selected.path : null
   const preview = usePreview(selectedEntryPath)
   const revealed = selectedEntryPath !== null && state.revealedPath === selectedEntryPath
 
-  // Layout: header + [prompt] + list + [toast] + help bar
-  const showFilter = state.mode === "filter" || state.filterQuery !== ""
-  const promptRows = showFilter || state.mode === "insert" ? 1 : 0
-  const listHeight = Math.max(1, height - 2 - promptRows - (state.toast ? 1 : 0))
-  const total = visibleEntries.length
+  // Fixed layout: header (1) + body + footer (2). Nothing shifts as toasts come and go.
+  const listHeight = Math.max(1, height - 3)
+  const listWidth = Math.min(40, Math.max(24, Math.floor(width * 0.35)))
+  const total = rows.length
 
   const select = (index: number) => dispatch({ type: "select", index, rows: listHeight, total })
 
@@ -126,7 +128,7 @@ export function App({ onExit, storeRoot }: Props) {
     bottom: () => select(total - 1),
     collapse: () => {
       if (isOpenGroup) return toggleGroup(selected.path)
-      const parent = visibleEntries.findIndex((e) => e.path === selected?.parent)
+      const parent = rows.findIndex((r) => r.entry.path === selected?.parent)
       if (parent >= 0) select(parent)
     },
     expand: () => {
@@ -207,58 +209,64 @@ export function App({ onExit, storeRoot }: Props) {
     )
   }
 
-  const countEntries = (list: typeof visibleEntries) =>
-    list.filter((e) => e.kind === "entry").length
+  const entryCount = state.entries.filter((e) => e.kind === "entry").length
+  const groupSize =
+    selected?.kind === "group"
+      ? state.entries.filter((e) => e.kind === "entry" && e.path.startsWith(selected.path + "/"))
+          .length
+      : 0
+  const prompt =
+    state.mode === "insert" ? (
+      <Prompt label="+" color={theme.green} value={state.draft} active />
+    ) : (
+      (state.mode === "filter" || searching) && (
+        <Prompt
+          label="/"
+          color={theme.lavender}
+          value={state.filterQuery}
+          active={state.mode === "filter"}
+        />
+      )
+    )
 
   return (
     <Box flexDirection="column" width={width} height={height}>
       <Header
         storePath={storeRoot}
-        visible={countEntries(visibleEntries)}
-        total={countEntries(state.entries)}
-        filtered={state.filterQuery !== ""}
+        status={searching ? `${total} of ${entryCount} entries` : `${entryCount} entries`}
         error={state.loadError}
       />
 
-      {state.mode === "insert" ? (
-        <Prompt label="+ new:" color={theme.green} value={state.draft} active />
+      {state.mode === "help" ? (
+        <HelpModal height={listHeight} />
       ) : (
-        showFilter && (
-          <Prompt
-            label="/"
-            color={theme.overlay}
-            value={state.filterQuery}
-            active={state.mode === "filter"}
-          />
-        )
-      )}
-
-      <Box flexDirection="row" flexGrow={1}>
-        <Box width={Math.floor(width * 0.4)} flexDirection="column">
+        <Box height={listHeight}>
           <EntryList
-            entries={visibleEntries}
+            rows={rows}
             collapsed={state.collapsed}
+            flat={searching}
             selectedIndex={state.selectedIndex}
             scrollOffset={state.scrollOffset}
-            maxVisible={listHeight}
-            width={Math.floor(width * 0.4)}
+            height={listHeight}
+            width={listWidth}
+          />
+          <Preview
+            entry={selected}
+            groupSize={groupSize}
+            preview={preview}
+            revealed={revealed}
+            height={listHeight}
           />
         </Box>
-        <Box flexDirection="column" flexGrow={1} marginLeft={1}>
-          <Preview path={selectedEntryPath} preview={preview} revealed={revealed} />
+      )}
+
+      <Box paddingX={1} justifyContent="space-between" height={1}>
+        <Box flexShrink={0}>{prompt || <Text> </Text>}</Box>
+        <Box marginLeft={2} flexShrink={1}>
+          <Toast toast={state.toast} />
         </Box>
       </Box>
-
-      {state.mode === "help" ? (
-        <Box paddingX={1}>
-          <HelpModal />
-        </Box>
-      ) : (
-        <>
-          <Toast toast={state.toast} width={width} />
-          <HelpBar mode={state.mode} width={width} />
-        </>
-      )}
+      <HelpBar mode={state.mode} />
     </Box>
   )
 }

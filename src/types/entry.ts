@@ -1,10 +1,10 @@
 /**
  * Flat representation of a `pass` store entry or group, post-walk.
  *
- * The store on disk is a tree; we flatten to an array (sorted
- * groups-before-entries, alphabetical within a level) so the list view
- * can render with simple index-based selection. `depth` and `parent`
- * preserve enough structure for indented rendering.
+ * The store on disk is a tree; we flatten it in DFS order
+ * (parent before children) so the list view can use index-based
+ * selection. `depth` and `parent` preserve enough structure for
+ * indented rendering.
  */
 export type Entry = {
   /** Path relative to the store root, e.g. "cloud/aws/prod" */

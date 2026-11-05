@@ -5,6 +5,11 @@ entries from a [`pass`](https://www.passwordstore.org/) (Unix password store)
 tree. Wraps your existing `passc` + `tc` pipeline so copied secrets never land
 in Raycast / Maccy / Flycut clipboard history.
 
+![pash browsing a password store: tree on the left, masked entry details on the right](docs/screenshot.png)
+
+While filtering (`/`), the tree becomes a ranked list of matching entry paths
+with the matched characters highlighted.
+
 ## Install
 
 ```sh
@@ -41,8 +46,8 @@ pash --help          # full key reference
 
 The right pane shows **non-secret frontmatter only** by default
 (login, url, email, otpauth, notes). The password is masked as
-`•••••••• (N chars)`. Hit `p` to reveal — the border turns red while
-plaintext is on screen.
+`••••••••  N chars`. Hit `p` to reveal — the pane divider turns red
+while plaintext is on screen. Moving to another entry hides it again.
 
 The metadata-only default means you can browse, disambiguate, and
 copy without ever exposing a secret to your terminal. `Enter` is the

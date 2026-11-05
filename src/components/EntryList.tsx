@@ -1,113 +1,113 @@
 import React from "react"
 import { Box, Text } from "ink"
-import type { Entry } from "../types/entry.js"
+import type { Row } from "../utils/filter.js"
 import { theme } from "../utils/theme.js"
 
 interface Props {
-  entries: Entry[]
+  rows: Row[]
   collapsed: ReadonlySet<string>
+  /** Flat ranked results (searching) instead of the tree. */
+  flat: boolean
   selectedIndex: number
   scrollOffset: number
-  maxVisible: number
+  height: number
   width: number
 }
 
+type Segment = { text: string; color: string; bold?: boolean }
+
 /**
- * The flat, scrollable list of entries + groups.
- *
- * Indented by depth (2 spaces per level). Groups render with `▸/▾`
- * expand toggles; entries with a 🔒 glyph. The selected row gets a
- * reverse-video background via ink's `inverse` prop.
+ * The scrollable list. Tree mode shows names indented under their
+ * groups; flat mode (while searching) shows full paths with matched
+ * characters highlighted, fzf-style.
  */
 export function EntryList({
-  entries,
+  rows,
   collapsed,
+  flat,
   selectedIndex,
   scrollOffset,
-  maxVisible,
+  height,
   width,
 }: Props) {
-  if (entries.length === 0) {
+  if (rows.length === 0) {
     return (
-      <Box paddingX={2} paddingY={1}>
-        <Text color={theme.overlay} dimColor>
-          (no entries)
-        </Text>
+      <Box paddingX={2}>
+        <Text color={theme.overlay}>{flat ? "no matches" : "(empty)"}</Text>
       </Box>
     )
   }
 
-  const showScrollUp = scrollOffset > 0
-  const showScrollDown = scrollOffset + maxVisible < entries.length
-  const visibleSlice = entries.slice(scrollOffset, scrollOffset + maxVisible)
-
   return (
-    <Box flexDirection="column" paddingX={1}>
-      {showScrollUp && (
-        <Text color={theme.overlay} dimColor>
-          {"  "}▲ {scrollOffset} more
-        </Text>
-      )}
-      {visibleSlice.map((entry, i) => {
-        const absoluteIndex = scrollOffset + i
-        const isSelected = absoluteIndex === selectedIndex
+    <Box flexDirection="column" width={width} height={height} overflow="hidden">
+      {rows.slice(scrollOffset, scrollOffset + height).map((row, i) => {
+        const segments = flat ? pathSegments(row) : treeSegments(row, collapsed)
         return (
-          <Row
-            key={entry.absPath}
-            entry={entry}
-            expanded={!collapsed.has(entry.path)}
-            isSelected={isSelected}
+          <Line
+            key={row.entry.absPath}
+            segments={segments}
+            selected={scrollOffset + i === selectedIndex}
             width={width}
           />
         )
       })}
-      {showScrollDown && (
-        <Text color={theme.overlay} dimColor>
-          {"  "}▼ {entries.length - scrollOffset - maxVisible} more
-        </Text>
-      )}
     </Box>
   )
 }
 
-function Row({
-  entry,
-  expanded,
-  isSelected,
+function treeSegments({ entry }: Row, collapsed: ReadonlySet<string>): Segment[] {
+  const indent = "  ".repeat(entry.depth)
+  if (entry.kind === "group") {
+    const chevron = collapsed.has(entry.path) ? "▸ " : "▾ "
+    return [{ text: `${indent}${chevron}${entry.name}/`, color: theme.peach, bold: true }]
+  }
+  return [{ text: `${indent}  ${entry.name}`, color: theme.text }]
+}
+
+/** Full path: parent dim, name bright, matched characters yellow. */
+function pathSegments({ entry, matches = [] }: Row): Segment[] {
+  const nameStart = entry.path.length - entry.name.length
+  const segments: Segment[] = []
+  for (let i = 0; i < entry.path.length; i++) {
+    const hit = matches.some(([a, b]) => i >= a && i <= b)
+    const color = hit ? theme.yellow : i < nameStart ? theme.overlay : theme.text
+    const last = segments[segments.length - 1]
+    if (last && last.color === color) last.text += entry.path[i]
+    else segments.push({ text: entry.path[i], color, bold: hit })
+  }
+  return segments
+}
+
+/** One row: selection marker, segments truncated to fit, background on select. */
+function Line({
+  segments,
+  selected,
   width,
 }: {
-  entry: Entry
-  expanded: boolean
-  isSelected: boolean
+  segments: Segment[]
+  selected: boolean
   width: number
 }) {
-  const indent = "  ".repeat(entry.depth)
-
-  if (entry.kind === "group") {
-    const chevron = expanded ? "▾ " : "▸ "
-    return (
-      <Box>
-        <Text inverse={isSelected} color={isSelected ? undefined : theme.peach}>
-          {indent}
-          {chevron}
-          {entry.name}/
-        </Text>
-      </Box>
-    )
+  const bg = selected ? theme.surface0 : undefined
+  let room = width - 2 // marker + trailing gutter
+  const fitted: Segment[] = []
+  for (const s of segments) {
+    if (room <= 0) break
+    const text = s.text.length > room ? s.text.slice(0, room - 1) + "…" : s.text
+    fitted.push({ ...s, text })
+    room -= text.length
   }
-
-  const icon = "🔒 "
-  const maxPath = Math.max(20, width - indent.length - icon.length - 4)
-  const displayPath =
-    entry.path.length > maxPath ? entry.path.slice(0, maxPath - 1) + "…" : entry.path
-
   return (
-    <Box>
-      <Text inverse={isSelected} color={isSelected ? undefined : theme.text}>
-        {indent}
-        {icon}
-        {displayPath}
+    <Text wrap="truncate">
+      <Text color={theme.lavender} backgroundColor={bg}>
+        {selected ? "▌" : " "}
       </Text>
-    </Box>
+      {fitted.map((s, i) => (
+        <Text key={i} color={s.color} bold={s.bold} backgroundColor={bg}>
+          {s.text}
+        </Text>
+      ))}
+      <Text backgroundColor={bg}>{" ".repeat(Math.max(0, room + 1))}</Text>
+    </Text>
   )
 }
