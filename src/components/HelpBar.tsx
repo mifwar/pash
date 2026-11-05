@@ -3,51 +3,42 @@ import { Box, Text } from "ink"
 import { theme } from "../utils/theme.js"
 import type { ViewMode } from "../types/entry.js"
 
-interface Props {
-  mode: ViewMode
-  filterQuery: string
-  width: number
+/** Curated per-mode hints; the full reference is the help modal. */
+const HINTS: Record<ViewMode, Array<[string, string]>> = {
+  normal: [
+    ["j/k", "move"],
+    ["Enter", "copy"],
+    ["p", "preview"],
+    ["/", "filter"],
+    ["i", "insert"],
+    ["R", "reload"],
+    ["?", "help"],
+    ["q", "quit"],
+  ],
+  filter: [
+    ["↑/↓", "move"],
+    ["Enter", "apply"],
+    ["Esc", "clear"],
+  ],
+  insert: [
+    ["Enter", "generate"],
+    ["Esc", "cancel"],
+  ],
+  help: [["? / Esc", "close help"]],
 }
 
-/**
- * Bottom keybinding strip. Different content per mode so the user
- * always sees what's actionable.
- */
-export function HelpBar({ mode, filterQuery, width }: Props) {
-  let content: React.ReactNode
-  if (mode === "filter") {
-    content = (
-      <Text>
-        <Text color={theme.overlay}>filter: </Text>
-        <Text color={theme.yellow}>{filterQuery || "_"}</Text>
-        <Text color={theme.overlay}> · Enter apply · Esc clear</Text>
-      </Text>
-    )
-  } else if (mode === "insert") {
-    content = (
-      <Text>
-        <Text color={theme.green}>new path: </Text>
-        <Text color={theme.yellow}>{filterQuery || "_"}</Text>
-        <Text color={theme.overlay}> · Enter generate · Esc cancel</Text>
-      </Text>
-    )
-  } else if (mode === "help") {
-    content = <Text color={theme.overlay}>? / Esc close help</Text>
-  } else {
-    content = (
-      <Text color={theme.overlay}>
-        <Text color={theme.lavender}>j/k</Text> move · <Text color={theme.lavender}>Enter</Text>{" "}
-        copy · <Text color={theme.lavender}>p</Text> preview · <Text color={theme.lavender}>/</Text>{" "}
-        filter · <Text color={theme.lavender}>i</Text> insert ·{" "}
-        <Text color={theme.lavender}>R</Text> reload · <Text color={theme.lavender}>?</Text> help ·{" "}
-        <Text color={theme.lavender}>q</Text> quit
-      </Text>
-    )
-  }
-
+/** Bottom keybinding strip for the current mode. */
+export function HelpBar({ mode, width }: { mode: ViewMode; width: number }) {
   return (
     <Box paddingX={1} width={width}>
-      {content}
+      <Text color={theme.overlay}>
+        {HINTS[mode].map(([key, action], i) => (
+          <Text key={key}>
+            {i > 0 && " · "}
+            <Text color={theme.lavender}>{key}</Text> {action}
+          </Text>
+        ))}
+      </Text>
     </Box>
   )
 }

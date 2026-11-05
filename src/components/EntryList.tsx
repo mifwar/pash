@@ -5,6 +5,7 @@ import { theme } from "../utils/theme.js"
 
 interface Props {
   entries: Entry[]
+  collapsed: ReadonlySet<string>
   selectedIndex: number
   scrollOffset: number
   maxVisible: number
@@ -18,7 +19,14 @@ interface Props {
  * expand toggles; entries with a 🔒 glyph. The selected row gets a
  * reverse-video background via ink's `inverse` prop.
  */
-export function EntryList({ entries, selectedIndex, scrollOffset, maxVisible, width }: Props) {
+export function EntryList({
+  entries,
+  collapsed,
+  selectedIndex,
+  scrollOffset,
+  maxVisible,
+  width,
+}: Props) {
   if (entries.length === 0) {
     return (
       <Box paddingX={2} paddingY={1}>
@@ -43,7 +51,15 @@ export function EntryList({ entries, selectedIndex, scrollOffset, maxVisible, wi
       {visibleSlice.map((entry, i) => {
         const absoluteIndex = scrollOffset + i
         const isSelected = absoluteIndex === selectedIndex
-        return <Row key={entry.absPath} entry={entry} isSelected={isSelected} width={width} />
+        return (
+          <Row
+            key={entry.absPath}
+            entry={entry}
+            expanded={!collapsed.has(entry.path)}
+            isSelected={isSelected}
+            width={width}
+          />
+        )
       })}
       {showScrollDown && (
         <Text color={theme.overlay} dimColor>
@@ -54,11 +70,21 @@ export function EntryList({ entries, selectedIndex, scrollOffset, maxVisible, wi
   )
 }
 
-function Row({ entry, isSelected, width }: { entry: Entry; isSelected: boolean; width: number }) {
+function Row({
+  entry,
+  expanded,
+  isSelected,
+  width,
+}: {
+  entry: Entry
+  expanded: boolean
+  isSelected: boolean
+  width: number
+}) {
   const indent = "  ".repeat(entry.depth)
 
   if (entry.kind === "group") {
-    const chevron = entry.expanded ? "▾ " : "▸ "
+    const chevron = expanded ? "▾ " : "▸ "
     return (
       <Box>
         <Text inverse={isSelected} color={isSelected ? undefined : theme.peach}>

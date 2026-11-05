@@ -15,7 +15,6 @@ export const theme = {
   // Text
   text: "#cdd6f4",
   subtext: "#a6adc8",
-  subtext0: "#a6adc8",
   overlay: "#6c7086",
 
   // Accents

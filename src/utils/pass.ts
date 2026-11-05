@@ -3,9 +3,7 @@ import { promisify } from "util"
 
 const execFileP = promisify(execFile)
 
-/**
- * Resolve the `pass` binary path. Test hook first, then $PATH lookup.
- */
+/** The `pass` binary: $PASH_PASS (test hook), else `pass` on $PATH. */
 function passBin(): string {
   return process.env.PASH_PASS ?? "pass"
 }
@@ -23,16 +21,6 @@ export async function passShow(entryPath: string): Promise<string> {
   const { stdout } = await execFileP(passBin(), ["show", entryPath], {
     maxBuffer: 1024 * 1024,
   })
-  return stdout
-}
-
-/**
- * Plain `pass` (no args) prints the store tree as a string. Used as
- * a fallback / sanity check. v0.1 doesn't rely on it — we walk the
- * filesystem directly.
- */
-export async function passList(): Promise<string> {
-  const { stdout } = await execFileP(passBin(), [])
   return stdout
 }
 

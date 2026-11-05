@@ -1,40 +1,34 @@
 import React from "react"
 import { Box, Text } from "ink"
 import type { ParsedEntry } from "../utils/pass.js"
+import type { PreviewState } from "../hooks/usePreview.js"
 import { theme } from "../utils/theme.js"
 
 interface Props {
-  entryPath: string | null
-  parsed: ParsedEntry | null
-  expanded: boolean
-  loading: boolean
-  error: string | null
+  path: string | null
+  preview: PreviewState
+  /** Render the full decrypted body. Off = metadata only. */
+  revealed: boolean
 }
 
 /**
  * Right-pane preview. Two modes:
  *
- * - **Collapsed (default):** show entry path + non-secret frontmatter
- *   (login, url, email, etc.) with the password masked as `••••••••`.
- *   This is the disambiguation view — no plaintext on screen.
- * - **Expanded (`p` toggled):** show the full decrypted body with a
- *   visible "PREVIEW" chip and a red-tinted border so it's always
- *   obvious the secret is on screen.
+ * - **Default:** entry path + non-secret frontmatter (login, url,
+ *   email, …) with the password masked. Disambiguation without
+ *   plaintext on screen.
+ * - **Revealed (`p`):** the full decrypted body, with a "PREVIEW" chip
+ *   and a red border so it's obvious the secret is visible.
  *
- * The body is loaded lazily on selection (gated by `parsed !== null`)
- * but only rendered when `expanded` is true. This means the GPG agent
- * hit happens on every selection either way, but the *display* of
- * plaintext requires an explicit user action.
- *
- * Caps body output at 30 lines so a giant entry doesn't blow up the
- * layout.
+ * Body output is capped at MAX_LINES so a giant entry can't blow up
+ * the layout.
  */
 const MAX_LINES = 30
 
 const FRONTMATTER_ORDER = ["login", "url", "email", "otpauth", "notes"] as const
 
-export function Preview({ entryPath, parsed, expanded, loading, error }: Props) {
-  if (!entryPath) {
+export function Preview({ path, preview, revealed }: Props) {
+  if (!path) {
     return (
       <Box
         flexDirection="column"
@@ -50,21 +44,19 @@ export function Preview({ entryPath, parsed, expanded, loading, error }: Props) 
     )
   }
 
-  const borderColor = expanded ? theme.red : theme.surface1
-
   return (
     <Box
       flexDirection="column"
       borderStyle="single"
-      borderColor={borderColor}
+      borderColor={revealed ? theme.red : theme.surface1}
       paddingX={1}
       flexGrow={1}
     >
       <Box marginBottom={1}>
         <Text color={theme.lavender} bold>
-          {entryPath}
+          {path}
         </Text>
-        {expanded && (
+        {revealed && (
           <Text color={theme.red} bold>
             {" "}
             · PREVIEW
@@ -72,25 +64,17 @@ export function Preview({ entryPath, parsed, expanded, loading, error }: Props) 
         )}
       </Box>
 
-      {loading && (
+      {preview.status === "loading" && (
         <Text color={theme.overlay} dimColor>
           Loading…
         </Text>
       )}
-
-      {error && !loading && <Text color={theme.red}>{error}</Text>}
-
-      {parsed && !loading && !error && (
+      {preview.status === "error" && <Text color={theme.red}>{preview.error}</Text>}
+      {preview.status === "ready" && (
         <Box flexDirection="column">
-          <Metadata parsed={parsed} />
-          {expanded ? <BodyView body={parsed.body} /> : <Hint />}
+          <Metadata parsed={preview.parsed} />
+          {revealed ? <BodyView parsed={preview.parsed} /> : <Hint />}
         </Box>
-      )}
-
-      {!parsed && !loading && !error && (
-        <Text color={theme.overlay} dimColor>
-          (no data)
-        </Text>
       )}
     </Box>
   )
@@ -153,37 +137,23 @@ function Hint() {
   )
 }
 
-/** Full body view, used when expanded. */
-function BodyView({ body }: { body: string }) {
-  const lines = body.split("\n")
+/** Full body view, shown when revealed. The password line is bold. */
+function BodyView({ parsed }: { parsed: ParsedEntry }) {
+  const lines = parsed.body.split("\n")
   const truncated = lines.length > MAX_LINES
   const shown = truncated ? lines.slice(0, MAX_LINES) : lines
 
   return (
     <Box flexDirection="column" marginTop={1}>
-      {shown.map((line, i) => {
-        // Frontmatter lines: dim, with the `#` retained
-        if (/^#\s+\w+:/.test(line)) {
-          return (
-            <Text key={i} color={theme.subtext}>
-              {line}
-            </Text>
-          )
-        }
-        // The password line: bold and bright so it stands out
-        if (i === 0 || (i > 0 && !/^#/.test(shown[i - 1] ?? ""))) {
-          return (
-            <Text key={i} color={theme.text} bold={!line.startsWith("#")}>
-              {line}
-            </Text>
-          )
-        }
-        return (
-          <Text key={i} color={theme.text}>
-            {line}
-          </Text>
-        )
-      })}
+      {shown.map((line, i) => (
+        <Text
+          key={i}
+          color={line.startsWith("#") ? theme.subtext : theme.text}
+          bold={line === parsed.password}
+        >
+          {line}
+        </Text>
+      ))}
       {truncated && (
         <Text color={theme.overlay} dimColor>
           … ({lines.length - MAX_LINES} more lines)
@@ -191,7 +161,7 @@ function BodyView({ body }: { body: string }) {
       )}
       <Box marginTop={1}>
         <Text color={theme.overlay} dimColor>
-          Press <Text color={theme.yellow}>p</Text> to hide
+          Press <Text color={theme.yellow}>p</Text> or <Text color={theme.yellow}>Esc</Text> to hide
         </Text>
       </Box>
     </Box>

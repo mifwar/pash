@@ -37,6 +37,7 @@
     "prepublishOnly": "npm run build",
     "format": "prettier . --write",
     "format:check": "prettier . --check",
+    "test": "tsx --test src/*.test.ts",
     "demo": "PASSWORD_STORE_DIR=./testdata/store PASH_PASSC=./testdata/scripts/fake-passc.sh PASH_PASS=./testdata/scripts/fake-pass.sh tsx src/cli.ts"
   },
   "dependencies": {

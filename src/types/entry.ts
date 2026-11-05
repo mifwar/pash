@@ -15,14 +15,10 @@ export type Entry = {
   parent: string
   /** 0 for top-level, 1 for first nested, etc. */
   depth: number
-  /** "group" = directory with .gpg-id; "entry" = .gpg file */
+  /** "group" = directory with at least one entry below it; "entry" = .gpg file */
   kind: "group" | "entry"
   /** Absolute path on disk */
   absPath: string
-  /** True if this is a group with at least one child entry */
-  hasChildren: boolean
-  /** True if this group is currently expanded in the UI */
-  expanded: boolean
 }
 
 export type ViewMode = "normal" | "filter" | "help" | "insert"
