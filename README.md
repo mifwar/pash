@@ -5,6 +5,11 @@ entries from a [`pass`](https://www.passwordstore.org/) (Unix password store)
 tree. Wraps your existing `passc` + `tc` pipeline so copied secrets never land
 in Raycast / Maccy / Flycut clipboard history.
 
+![pash browsing a password store: tree on the left, masked entry details on the right](docs/screenshot.png)
+
+While filtering (`/`), the tree becomes a ranked list of matching entry paths
+with the matched characters highlighted.
+
 ## Install
 
 ```sh
