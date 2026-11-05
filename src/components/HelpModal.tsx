@@ -1,39 +1,10 @@
 import React from "react"
-import { Box, Text, useInput } from "ink"
+import { Box, Text } from "ink"
+import { KEYMAP } from "../keymap.js"
 import { theme } from "../utils/theme.js"
 
-interface Props {
-  onClose: () => void
-}
-
-const BINDINGS: Array<{ key: string; action: string }> = [
-  { key: "j / ↓", action: "Move down" },
-  { key: "k / ↑", action: "Move up" },
-  { key: "g", action: "Jump to top" },
-  { key: "G", action: "Jump to bottom" },
-  { key: "h / ←", action: "Collapse group / parent" },
-  { key: "l / →", action: "Expand group" },
-  { key: "Enter", action: "Transient-copy password" },
-  { key: "p", action: "Toggle full-body preview (plaintext on screen)" },
-  { key: "/", action: "Filter (fuzzy)" },
-  { key: "i", action: "Insert new entry (pass generate)" },
-  { key: "Esc", action: "Clear filter / collapse preview / cancel insert" },
-  { key: "R", action: "Reload store from disk" },
-  { key: "?", action: "Toggle this help" },
-  { key: "q / Ctrl-c", action: "Quit" },
-]
-
-/**
- * Full keybinding reference modal. Shows all implemented keys
- * (insert yes; generate-via-prompt / delete / OTP still pending).
- */
-export function HelpModal({ onClose }: Props) {
-  useInput((input, key) => {
-    if (key.escape || input === "?" || input === "q") {
-      onClose()
-    }
-  })
-
+/** Full keybinding reference, rendered from KEYMAP. App handles closing it. */
+export function HelpModal() {
   return (
     <Box
       flexDirection="column"
@@ -47,12 +18,12 @@ export function HelpModal({ onClose }: Props) {
       </Text>
 
       <Box marginTop={1} flexDirection="column">
-        {BINDINGS.map(({ key, action }) => (
-          <Box key={key}>
-            <Box width={18}>
-              <Text color={theme.yellow}>{key}</Text>
+        {KEYMAP.map(({ label, description }) => (
+          <Box key={label}>
+            <Box width={14}>
+              <Text color={theme.yellow}>{label}</Text>
             </Box>
-            <Text color={theme.subtext}>{action}</Text>
+            <Text color={theme.subtext}>{description}</Text>
           </Box>
         ))}
       </Box>

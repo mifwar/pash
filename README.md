@@ -15,7 +15,7 @@ npm install -g @mifwar/pash
 
 ```sh
 pash                 # open the TUI against $PASSWORD_STORE_DIR ?? ~/.password-store
-pash --store ~/work  # one-shot store override
+pash --store ~/work  # one-shot store override (or: pash ~/work)
 pash --help          # full key reference
 ```
 
@@ -25,14 +25,16 @@ pash --help          # full key reference
 | ---------------------------- | ---------------------------------------------- |
 | `j` / `k`                    | Move selection                                 |
 | `g` / `G`                    | Top / bottom                                   |
-| `h` / `←`                    | Collapse group / move to parent                |
+| `Ctrl-d` / `Ctrl-u`          | Half page down / up                            |
+| `h` / `←`                    | Collapse group / jump to parent                |
 | `l` / `→` / Enter (on group) | Expand group                                   |
 | `Enter` (on entry)           | Transient-copy password via `passc`            |
 | `p`                          | Toggle full-body preview (plaintext on screen) |
-| `/`                          | Enter filter mode (fuzzy via fuse.js)          |
-| `Esc`                        | Clear filter / collapse preview / back         |
+| `/`                          | Filter (fuzzy; `↑`/`↓` or `Ctrl-n/p` to move)  |
+| `i`                          | Insert new entry (`pass generate`)             |
+| `Esc`                        | Hide preview / clear filter / cancel           |
 | `R`                          | Reload store from disk                         |
-| `?` / `F1`                   | Toggle full help                               |
+| `?`                          | Toggle full help                               |
 | `q` / `Ctrl-c`               | Quit                                           |
 
 ### Security
@@ -45,6 +47,14 @@ plaintext is on screen.
 The metadata-only default means you can browse, disambiguate, and
 copy without ever exposing a secret to your terminal. `Enter` is the
 safe default; `p` is the explicit "show me" gate.
+
+## Development
+
+```sh
+npm run demo   # fixture store, fake pass/passc
+npm run dev    # your real store
+npm test
+```
 
 ## Configuration
 

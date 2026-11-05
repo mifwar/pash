@@ -1,6 +1,6 @@
 import { readdir, stat } from "fs/promises"
 import type { Dirent } from "fs"
-import { join, relative, dirname, basename } from "path"
+import { join } from "path"
 import type { Entry, StoreLoadResult } from "../types/entry.js"
 
 /**
@@ -60,12 +60,8 @@ export async function loadStore(root: string): Promise<StoreLoadResult> {
         depth,
         kind: "group",
         absPath: subAbs,
-        hasChildren: false,
-        expanded: true,
       })
-      const grandchildren = await walk(subAbs, depth + 1, subRel)
-      if (grandchildren > 0) {
-        entries[placeholderIdx].hasChildren = true
+      if ((await walk(subAbs, depth + 1, subRel)) > 0) {
         childCount++
       } else {
         // Empty group (or recursive-only-empty) — prune
@@ -89,8 +85,6 @@ export async function loadStore(root: string): Promise<StoreLoadResult> {
         depth,
         kind: "entry",
         absPath: join(dir, file),
-        hasChildren: false,
-        expanded: false,
       })
       childCount++
     }
@@ -101,22 +95,4 @@ export async function loadStore(root: string): Promise<StoreLoadResult> {
   await walk(root, 0, "")
 
   return { entries, root, error: null }
-}
-
-/**
- * Find a single entry by path. Returns undefined if not found.
- * Used after a `pass generate` to update one row without re-walking.
- */
-export function findEntry(entries: Entry[], path: string): Entry | undefined {
-  return entries.find((e) => e.path === path)
-}
-
-/** Directory of an entry's parent group (for `pass` commands). */
-export function entryDir(entry: Entry): string {
-  return dirname(entry.absPath)
-}
-
-/** Just the file stem, e.g. "gmail" for "email/gmail". */
-export function entryName(entry: Entry): string {
-  return basename(entry.path)
 }
