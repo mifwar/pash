@@ -12,6 +12,7 @@ const HINTS: Record<ViewMode, Array<[string, string]>> = {
     ["/", "filter"],
     ["i", "insert"],
     ["e", "edit"],
+    ["y", "copy path"],
     ["R", "reload"],
     ["?", "help"],
     ["q", "quit"],
