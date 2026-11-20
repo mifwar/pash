@@ -39,6 +39,16 @@ export async function passGenerate(entryPath: string): Promise<void> {
 }
 
 /**
+ * Overwrite an entry with `body` via `pass insert -m -f` (stdin, no
+ * shell, no plaintext in argv).
+ */
+export async function passInsert(entryPath: string, body: string): Promise<void> {
+  const run = execFileP(passBin(), ["insert", "-m", "-f", entryPath])
+  run.child.stdin?.end(body)
+  await run
+}
+
+/**
  * Parsed shape of a `pass` entry's plaintext.
  *
  * `pass` entries conventionally start with `# Key: value` lines
@@ -66,7 +76,19 @@ export type ParsedEntry = {
 export function parseEntry(plaintext: string): ParsedEntry {
   const lines = plaintext.split("\n")
   const frontmatter: Record<string, string> = {}
+  const password = lines[passwordIndex(lines, frontmatter)] ?? ""
+  return { frontmatter, password, body: plaintext }
+}
 
+/** Replace the password line, keeping frontmatter and trailing lines. */
+export function setPassword(plaintext: string, password: string): string {
+  const lines = plaintext.split("\n")
+  lines.splice(passwordIndex(lines), 1, password)
+  return lines.join("\n")
+}
+
+/** Index of the password line; collects frontmatter on the way. */
+function passwordIndex(lines: string[], frontmatter: Record<string, string> = {}): number {
   let i = 0
   for (; i < lines.length; i++) {
     const m = lines[i].match(/^#\s*(\w+):\s*(.*)$/)
@@ -75,7 +97,5 @@ export function parseEntry(plaintext: string): ParsedEntry {
   }
   // Skip blank separator lines
   while (i < lines.length && lines[i].trim() === "") i++
-
-  const password = lines[i] ?? ""
-  return { frontmatter, password, body: plaintext }
+  return i
 }

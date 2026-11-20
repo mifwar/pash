@@ -22,6 +22,12 @@ case "$cmd" in
       exit 1
     fi
     ;;
+  insert)
+    # insert -m -f <entry>: body on stdin
+    entry="${!#}"
+    mkdir -p "$(dirname "$STORE_DIR/$entry")"
+    cat > "$STORE_DIR/${entry}.gpg"
+    ;;
   "")
     # `pass` with no args lists the tree — pash doesn't use this in v0.1
     find "$STORE_DIR" -name '*.gpg' -type f | sed "s|$STORE_DIR/||; s|\.gpg$||" | sort

@@ -11,6 +11,7 @@ const HINTS: Record<ViewMode, Array<[string, string]>> = {
     ["p", "reveal"],
     ["/", "filter"],
     ["i", "insert"],
+    ["e", "edit"],
     ["R", "reload"],
     ["?", "help"],
     ["q", "quit"],
@@ -22,6 +23,10 @@ const HINTS: Record<ViewMode, Array<[string, string]>> = {
   ],
   insert: [
     ["⏎", "generate"],
+    ["Esc", "cancel"],
+  ],
+  edit: [
+    ["⏎", "save"],
     ["Esc", "cancel"],
   ],
   help: [["? / Esc", "close help"]],
