@@ -25,6 +25,16 @@ export async function resolvePassc(): Promise<string | null> {
   }
 }
 
+/**
+ * Copy non-secret text to the regular clipboard. macOS only, like the
+ * passc/tc pipeline.
+ */
+export async function copyText(text: string): Promise<void> {
+  const run = execFileP("pbcopy")
+  run.child.stdin?.end(text)
+  await run
+}
+
 export type CopyResult = {
   ok: boolean
   /** Seconds until the pasteboard auto-clears, if reported. */

@@ -19,6 +19,7 @@ export type Command =
   | "filter"
   | "insert"
   | "edit"
+  | "yankPath"
   | "back"
   | "reload"
   | "help"
@@ -66,6 +67,12 @@ export const KEYMAP: Binding[] = [
   },
   { command: "insert", keys: ["i"], label: "i", description: "Insert new entry (pass generate)" },
   { command: "edit", keys: ["e"], label: "e", description: "Edit password (keeps metadata)" },
+  {
+    command: "yankPath",
+    keys: ["y"],
+    label: "y",
+    description: "Copy `pass <path>` (for scripts / AI agents)",
+  },
   { command: "back", keys: ["esc"], label: "Esc", description: "Hide preview / clear filter" },
   { command: "reload", keys: ["R"], label: "R", description: "Reload store from disk" },
   { command: "help", keys: ["?"], label: "?", description: "Toggle help" },

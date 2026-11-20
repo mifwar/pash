@@ -12,7 +12,7 @@ import { commandFor, editLine, keyName, type Command } from "./keymap.js"
 import { initialState, isHidden, reducer } from "./state.js"
 import { loadStore } from "./utils/store.js"
 import { passGenerate, passInsert, passShow, setPassword } from "./utils/pass.js"
-import { resolvePassc, transientCopy } from "./utils/clipboard.js"
+import { copyText, resolvePassc, transientCopy } from "./utils/clipboard.js"
 import { buildFuse, search, type Row } from "./utils/filter.js"
 import { theme } from "./utils/theme.js"
 import type { Toast as ToastT, ViewMode } from "./types/entry.js"
@@ -174,6 +174,14 @@ export function App({ onExit, storeRoot }: Props) {
     insert: () => dispatch({ type: "mode", mode: "insert" }),
     edit: () => {
       if (selectedEntryPath) dispatch({ type: "mode", mode: "edit" })
+    },
+    yankPath: () => {
+      if (!selected) return
+      const text = `pass ${selected.path}`
+      copyText(text).then(
+        () => showToast({ text: `Copied: ${text}`, kind: "success" }),
+        (err) => showToast({ text: `Copy failed: ${errorMessage(err)}`, kind: "error" })
+      )
     },
     back: () => {
       if (revealed) dispatch({ type: "reveal", path: null })

@@ -38,6 +38,7 @@ pash --help          # full key reference
 | `/`                          | Filter (fuzzy; `↑`/`↓` or `Ctrl-n/p` to move)  |
 | `i`                          | Insert new entry (`pass generate`)             |
 | `e`                          | Edit password (masked input; keeps metadata)   |
+| `y`                          | Copy `pass <path>` (to hand to scripts/agents) |
 | `Esc`                        | Hide preview / clear filter / cancel           |
 | `R`                          | Reload store from disk                         |
 | `?`                          | Toggle full help                               |
