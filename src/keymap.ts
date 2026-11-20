@@ -18,6 +18,7 @@ export type Command =
   | "reveal"
   | "filter"
   | "insert"
+  | "edit"
   | "back"
   | "reload"
   | "help"
@@ -64,6 +65,7 @@ export const KEYMAP: Binding[] = [
     description: "Filter (fuzzy; ↑/↓ or Ctrl-n/p to move)",
   },
   { command: "insert", keys: ["i"], label: "i", description: "Insert new entry (pass generate)" },
+  { command: "edit", keys: ["e"], label: "e", description: "Edit password (keeps metadata)" },
   { command: "back", keys: ["esc"], label: "Esc", description: "Hide preview / clear filter" },
   { command: "reload", keys: ["R"], label: "R", description: "Reload store from disk" },
   { command: "help", keys: ["?"], label: "?", description: "Toggle help" },

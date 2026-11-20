@@ -19,22 +19,24 @@ const LOADING: PreviewState = { status: "loading" }
  * is derived from `path`, so there is no reset logic when it changes.
  * Errors aren't cached: revisiting a failed entry retries.
  */
-export function usePreview(path: string | null): PreviewState {
-  const cache = useRef(new Map<string, ParsedEntry>())
+export function usePreview(path: string | null, epoch: number): PreviewState {
+  // Bumping `epoch` drops the cache (after an edit or reload).
+  const cacheRef = useRef({ epoch, map: new Map<string, ParsedEntry>() })
+  if (cacheRef.current.epoch !== epoch) cacheRef.current = { epoch, map: new Map() }
+  const cache = cacheRef.current.map
   const [failure, setFailure] = useState<{ path: string; error: string } | null>(null)
   // Bumped when a decrypt lands so the cache read below re-runs.
   const [, setTick] = useState(0)
 
   useEffect(() => {
-    if (!path || cache.current.has(path)) return
+    if (!path || cache.has(path)) return
     setFailure((f) => (f?.path === path ? null : f)) // retrying: show loading, not the stale error
     let cancelled = false
     const timer = setTimeout(() => {
       passShow(path).then(
         (body) => {
-          const c = cache.current
-          if (c.size >= CACHE_MAX) c.delete(c.keys().next().value!)
-          c.set(path, parseEntry(body))
+          if (cache.size >= CACHE_MAX) cache.delete(cache.keys().next().value!)
+          cache.set(path, parseEntry(body))
           if (!cancelled) setTick((t) => t + 1)
         },
         (err) => {
@@ -47,10 +49,10 @@ export function usePreview(path: string | null): PreviewState {
       cancelled = true
       clearTimeout(timer)
     }
-  }, [path])
+  }, [path, epoch])
 
   if (!path) return IDLE
-  const parsed = cache.current.get(path)
+  const parsed = cache.get(path)
   if (parsed) return { status: "ready", parsed }
   if (failure?.path === path) return { status: "error", error: failure.error }
   return LOADING

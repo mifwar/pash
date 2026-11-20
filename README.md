@@ -37,6 +37,7 @@ pash --help          # full key reference
 | `p`                          | Toggle full-body preview (plaintext on screen) |
 | `/`                          | Filter (fuzzy; `↑`/`↓` or `Ctrl-n/p` to move)  |
 | `i`                          | Insert new entry (`pass generate`)             |
+| `e`                          | Edit password (masked input; keeps metadata)   |
 | `Esc`                        | Hide preview / clear filter / cancel           |
 | `R`                          | Reload store from disk                         |
 | `?`                          | Toggle full help                               |

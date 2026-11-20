@@ -21,7 +21,7 @@ export type Entry = {
   absPath: string
 }
 
-export type ViewMode = "normal" | "filter" | "help" | "insert"
+export type ViewMode = "normal" | "filter" | "help" | "insert" | "edit"
 
 export type Toast = {
   text: string

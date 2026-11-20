@@ -11,11 +11,11 @@ import { usePreview } from "./hooks/usePreview.js"
 import { commandFor, editLine, keyName, type Command } from "./keymap.js"
 import { initialState, isHidden, reducer } from "./state.js"
 import { loadStore } from "./utils/store.js"
-import { passGenerate } from "./utils/pass.js"
+import { passGenerate, passInsert, passShow, setPassword } from "./utils/pass.js"
 import { resolvePassc, transientCopy } from "./utils/clipboard.js"
 import { buildFuse, search, type Row } from "./utils/filter.js"
 import { theme } from "./utils/theme.js"
-import type { Toast as ToastT } from "./types/entry.js"
+import type { Toast as ToastT, ViewMode } from "./types/entry.js"
 
 interface Props {
   onExit: () => void
@@ -23,6 +23,14 @@ interface Props {
 }
 
 const TOAST_TTL_MS = 3000
+
+interface PromptSpec {
+  label: string
+  color: string
+  /** What the prompt displays (masked for passwords). */
+  value: string
+  submit: () => void
+}
 
 const errorMessage = (err: unknown) => (err instanceof Error ? err.message : String(err))
 
@@ -32,6 +40,7 @@ export function App({ onExit, storeRoot }: Props) {
   const height = stdout?.rows ?? 24
 
   const [state, dispatch] = useReducer(reducer, initialState)
+  const [previewEpoch, bumpPreview] = useReducer((n: number) => n + 1, 0)
 
   // passc resolved once; the promise is awaited at copy time.
   const passc = useMemo(() => resolvePassc(), [])
@@ -46,6 +55,7 @@ export function App({ onExit, storeRoot }: Props) {
   const reload = useCallback(async () => {
     const res = await loadStore(storeRoot)
     dispatch({ type: "loaded", entries: res.entries, error: res.error })
+    bumpPreview()
   }, [storeRoot])
 
   useEffect(() => {
@@ -66,7 +76,7 @@ export function App({ onExit, storeRoot }: Props) {
   )
   const selected = rows[state.selectedIndex]?.entry ?? null
   const selectedEntryPath = selected?.kind === "entry" ? selected.path : null
-  const preview = usePreview(selectedEntryPath)
+  const preview = usePreview(selectedEntryPath, previewEpoch)
   const revealed = selectedEntryPath !== null && state.revealedPath === selectedEntryPath
 
   // Fixed layout: header (1) + body + footer (2). Nothing shifts as toasts come and go.
@@ -115,6 +125,25 @@ export function App({ onExit, storeRoot }: Props) {
     }
   }
 
+  // Selection can't move in edit mode, so the selected entry is the target.
+  const editEntry = async () => {
+    if (!selectedEntryPath) return
+    if (!state.draft) {
+      showToast({ text: "Password must be non-empty", kind: "error" })
+      return
+    }
+    try {
+      // Fresh decrypt, not the preview cache: never write back a stale body.
+      const body = await passShow(selectedEntryPath)
+      await passInsert(selectedEntryPath, setPassword(body, state.draft))
+      dispatch({ type: "mode", mode: "normal" })
+      bumpPreview()
+      showToast({ text: `Updated ${selectedEntryPath}`, kind: "success" })
+    } catch (err) {
+      showToast({ text: `Edit failed: ${errorMessage(err)}`, kind: "error" })
+    }
+  }
+
   const halfPage = Math.max(1, Math.floor(listHeight / 2))
   const toggleGroup = (path: string) => dispatch({ type: "toggle-group", path })
   const isOpenGroup = selected?.kind === "group" && !state.collapsed.has(selected.path)
@@ -143,6 +172,9 @@ export function App({ onExit, storeRoot }: Props) {
     },
     filter: () => dispatch({ type: "mode", mode: "filter" }),
     insert: () => dispatch({ type: "mode", mode: "insert" }),
+    edit: () => {
+      if (selectedEntryPath) dispatch({ type: "mode", mode: "edit" })
+    },
     back: () => {
       if (revealed) dispatch({ type: "reveal", path: null })
       else if (state.filterQuery) dispatch({ type: "filter", query: "" })
@@ -152,16 +184,34 @@ export function App({ onExit, storeRoot }: Props) {
     quit: onExit,
   }
 
-  /** Filter and insert are the same shape: a one-line prompt. */
-  const onPromptKey = (input: string, key: Key) => {
+  /** Modes that take a one-line text prompt, and what Enter does in each. */
+  const prompts: Record<ViewMode, PromptSpec | null> = {
+    normal: null,
+    help: null,
+    filter: {
+      label: "/",
+      color: theme.lavender,
+      value: state.filterQuery,
+      submit: () => dispatch({ type: "mode", mode: "normal" }),
+    },
+    insert: { label: "+", color: theme.green, value: state.draft, submit: insertEntry },
+    edit: {
+      label: `${selectedEntryPath} new password:`,
+      color: theme.peach,
+      value: "•".repeat(state.draft.length),
+      submit: editEntry,
+    },
+  }
+  const activePrompt = prompts[state.mode]
+
+  const onPromptKey = (prompt: PromptSpec, input: string, key: Key) => {
     const filtering = state.mode === "filter"
     const name = keyName(input, key)
     if (name === "esc") {
       if (filtering) dispatch({ type: "filter", query: "" })
       dispatch({ type: "mode", mode: "normal" })
     } else if (name === "enter") {
-      if (filtering) dispatch({ type: "mode", mode: "normal" })
-      else insertEntry()
+      prompt.submit()
     } else if (filtering && (name === "down" || name === "ctrl-n")) {
       commands.down()
     } else if (filtering && (name === "up" || name === "ctrl-p")) {
@@ -174,7 +224,7 @@ export function App({ onExit, storeRoot }: Props) {
   }
 
   useInput((input, key) => {
-    if (state.mode === "filter" || state.mode === "insert") return onPromptKey(input, key)
+    if (activePrompt) return onPromptKey(activePrompt, input, key)
     const command = commandFor(input, key)
     if (state.mode === "help") {
       if (command === "help" || command === "back" || command === "quit") {
@@ -215,19 +265,15 @@ export function App({ onExit, storeRoot }: Props) {
       ? state.entries.filter((e) => e.kind === "entry" && e.path.startsWith(selected.path + "/"))
           .length
       : 0
-  const prompt =
-    state.mode === "insert" ? (
-      <Prompt label="+" color={theme.green} value={state.draft} active />
-    ) : (
-      (state.mode === "filter" || searching) && (
-        <Prompt
-          label="/"
-          color={theme.lavender}
-          value={state.filterQuery}
-          active={state.mode === "filter"}
-        />
-      )
-    )
+  const promptLine = activePrompt ?? (searching && prompts.filter)
+  const prompt = promptLine && (
+    <Prompt
+      label={promptLine.label}
+      color={promptLine.color}
+      value={promptLine.value}
+      active={promptLine === activePrompt}
+    />
+  )
 
   return (
     <Box flexDirection="column" width={width} height={height}>

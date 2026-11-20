@@ -3,7 +3,7 @@ import assert from "node:assert/strict"
 import type { Key } from "ink"
 import { initialState, isHidden, reducer } from "./state.js"
 import { commandFor, editLine } from "./keymap.js"
-import { parseEntry } from "./utils/pass.js"
+import { parseEntry, setPassword } from "./utils/pass.js"
 
 const key = (k: Partial<Key> = {}) => k as Key
 const select = (s: typeof initialState, index: number, rows = 5, total = 20) =>
@@ -51,4 +51,10 @@ test("parseEntry splits frontmatter from password", () => {
   const p = parseEntry("# Login: me\n# URL: x.com\n\nhunter2\nextra")
   assert.deepEqual(p.frontmatter, { login: "me", url: "x.com" })
   assert.equal(p.password, "hunter2")
+})
+
+test("setPassword replaces only the password line", () => {
+  assert.equal(setPassword("# Login: me\n\nold\nextra\n", "new"), "# Login: me\n\nnew\nextra\n")
+  assert.equal(setPassword("old", "new"), "new")
+  assert.equal(setPassword("# Login: me", "new"), "# Login: me\nnew")
 })
