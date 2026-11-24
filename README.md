@@ -26,23 +26,23 @@ pash --help          # full key reference
 
 ### Key bindings
 
-| Key                          | Action                                         |
-| ---------------------------- | ---------------------------------------------- |
-| `j` / `k`                    | Move selection                                 |
-| `g` / `G`                    | Top / bottom                                   |
-| `Ctrl-d` / `Ctrl-u`          | Half page down / up                            |
-| `h` / `←`                    | Collapse group / jump to parent                |
-| `l` / `→` / Enter (on group) | Expand group                                   |
-| `Enter` (on entry)           | Transient-copy password via `passc`            |
-| `p`                          | Toggle full-body preview (plaintext on screen) |
-| `/`                          | Filter (fuzzy; `↑`/`↓` or `Ctrl-n/p` to move)  |
-| `i`                          | Insert new entry (`pass generate`)             |
-| `e`                          | Edit password (masked input; keeps metadata)   |
-| `y`                          | Copy `pass <path>` (to hand to scripts/agents) |
-| `Esc`                        | Hide preview / clear filter / cancel           |
-| `R`                          | Reload store from disk                         |
-| `?`                          | Toggle full help                               |
-| `q` / `Ctrl-c`               | Quit                                           |
+| Key                          | Action                                                |
+| ---------------------------- | ----------------------------------------------------- |
+| `j` / `k`                    | Move selection                                        |
+| `g` / `G`                    | Top / bottom                                          |
+| `Ctrl-d` / `Ctrl-u`          | Half page down / up                                   |
+| `h` / `←`                    | Collapse group / jump to parent                       |
+| `l` / `→` / Enter (on group) | Expand group                                          |
+| `Enter` (on entry)           | Transient-copy password via `passc`                   |
+| `p`                          | Toggle full-body preview (plaintext on screen)        |
+| `/`                          | Filter (fuzzy; `↑`/`↓` or `Ctrl-n/p` to move)         |
+| `i`                          | Insert new entry (auto-generate with rules or manual) |
+| `e`                          | Edit password (masked input; keeps metadata)          |
+| `y`                          | Copy `pass <path>` (to hand to scripts/agents)        |
+| `Esc`                        | Hide preview / clear filter / cancel                  |
+| `R`                          | Reload store from disk                                |
+| `?`                          | Toggle full help                                      |
+| `q` / `Ctrl-c`               | Quit                                                  |
 
 ### Security
 

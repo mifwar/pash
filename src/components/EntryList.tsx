@@ -21,7 +21,7 @@ type Segment = { text: string; color: string; bold?: boolean }
  * groups; flat mode (while searching) shows full paths with matched
  * characters highlighted, fzf-style.
  */
-export function EntryList({
+export const EntryList = React.memo(function EntryList({
   rows,
   collapsed,
   flat,
@@ -53,7 +53,7 @@ export function EntryList({
       })}
     </Box>
   )
-}
+})
 
 function treeSegments({ entry }: Row, collapsed: ReadonlySet<string>): Segment[] {
   const indent = "  ".repeat(entry.depth)

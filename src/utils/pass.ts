@@ -25,20 +25,6 @@ export async function passShow(entryPath: string): Promise<string> {
 }
 
 /**
- * Generate a new entry via `pass generate`. Auto-generates a 25-char
- * password and creates the .gpg file (and any missing parent groups).
- *
- * Throws on GPG agent failure, invalid path, etc. Caller toasts the
- * error. `pass generate` prints the new password on stdout — we
- * discard it (the user can `p` to preview after reload).
- */
-export async function passGenerate(entryPath: string): Promise<void> {
-  await execFileP(passBin(), ["generate", entryPath], {
-    maxBuffer: 1024 * 1024,
-  })
-}
-
-/**
  * Overwrite an entry with `body` via `pass insert -m -f` (stdin, no
  * shell, no plaintext in argv).
  */

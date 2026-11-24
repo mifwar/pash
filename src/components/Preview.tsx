@@ -24,7 +24,13 @@ const FRONTMATTER_ORDER = ["login", "user", "username", "email", "url", "otpauth
  * screen. `p` reveals the full body; the divider turns red while it's
  * visible.
  */
-export function Preview({ entry, groupSize, preview, revealed, height }: Props) {
+export const Preview = React.memo(function Preview({
+  entry,
+  groupSize,
+  preview,
+  revealed,
+  height,
+}: Props) {
   return (
     <Box
       flexDirection="column"
@@ -47,7 +53,7 @@ export function Preview({ entry, groupSize, preview, revealed, height }: Props) 
       {entry?.kind === "entry" && <Body preview={preview} revealed={revealed} />}
     </Box>
   )
-}
+})
 
 function Title({ entry, revealed }: { entry: Entry; revealed: boolean }) {
   const parent = entry.parent ? `${entry.parent}/` : ""

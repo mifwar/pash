@@ -65,7 +65,12 @@ export const KEYMAP: Binding[] = [
     label: "/",
     description: "Filter (fuzzy; ↑/↓ or Ctrl-n/p to move)",
   },
-  { command: "insert", keys: ["i"], label: "i", description: "Insert new entry (pass generate)" },
+  {
+    command: "insert",
+    keys: ["i"],
+    label: "i",
+    description: "Insert new entry (generate or manual)",
+  },
   { command: "edit", keys: ["e"], label: "e", description: "Edit password (keeps metadata)" },
   {
     command: "yankPath",
@@ -89,6 +94,7 @@ export function keyName(input: string, key: Key): string {
   if (key.pageDown) return "pagedown"
   if (key.return) return "enter"
   if (key.escape) return "esc"
+  if (key.tab) return "tab"
   return key.ctrl ? `ctrl-${input}` : input
 }
 

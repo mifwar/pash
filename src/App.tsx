@@ -1,8 +1,9 @@
-import React, { useCallback, useEffect, useMemo, useReducer, useRef } from "react"
+import React, { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react"
 import { Box, Text, useInput, useStdout, type Key } from "ink"
 import { Header } from "./components/Header.js"
 import { EntryList } from "./components/EntryList.js"
 import { Preview } from "./components/Preview.js"
+import { InsertPanel, type InsertMethod } from "./components/InsertPanel.js"
 import { HelpBar } from "./components/HelpBar.js"
 import { HelpModal } from "./components/HelpModal.js"
 import { Toast } from "./components/Toast.js"
@@ -11,7 +12,7 @@ import { usePreview } from "./hooks/usePreview.js"
 import { commandFor, editLine, keyName, type Command } from "./keymap.js"
 import { initialState, isHidden, reducer } from "./state.js"
 import { loadStore } from "./utils/store.js"
-import { passGenerate, passInsert, passShow, setPassword } from "./utils/pass.js"
+import { passInsert, passShow, setPassword } from "./utils/pass.js"
 import { copyText, resolvePassc, transientCopy } from "./utils/clipboard.js"
 import { buildFuse, search, type Row } from "./utils/filter.js"
 import { theme } from "./utils/theme.js"
@@ -36,8 +37,19 @@ const errorMessage = (err: unknown) => (err instanceof Error ? err.message : Str
 
 export function App({ onExit, storeRoot }: Props) {
   const { stdout } = useStdout()
-  const width = stdout?.columns ?? 100
-  const height = stdout?.rows ?? 24
+  const [size, setSize] = useState(() => ({
+    width: stdout?.columns ?? 100,
+    height: stdout?.rows ?? 24,
+  }))
+  useEffect(() => {
+    if (!stdout) return
+    const onResize = () => setSize({ width: stdout.columns ?? 100, height: stdout.rows ?? 24 })
+    stdout.on("resize", onResize)
+    return () => {
+      stdout.off("resize", onResize)
+    }
+  }, [stdout])
+  const { width, height } = size
 
   const [state, dispatch] = useReducer(reducer, initialState)
   const [previewEpoch, bumpPreview] = useReducer((n: number) => n + 1, 0)
@@ -109,21 +121,36 @@ export function App({ onExit, storeRoot }: Props) {
     )
   }
 
-  const insertEntry = async () => {
-    const path = state.draft.trim()
-    if (!path || /\s/.test(path)) {
-      showToast({ text: "Path must be non-empty with no whitespace", kind: "error" })
-      return
-    }
-    try {
-      await passGenerate(path)
-      dispatch({ type: "mode", mode: "normal" })
-      await reload()
-      showToast({ text: `Created ${path}`, kind: "success" })
-    } catch (err) {
-      showToast({ text: `Insert failed: ${errorMessage(err)}`, kind: "error" })
-    }
-  }
+  const insertEntry = useCallback(
+    async (path: string, password: string, method: InsertMethod) => {
+      try {
+        await passInsert(path, `${password}\n`)
+        dispatch({ type: "mode", mode: "normal" })
+        await reload()
+        showToast({
+          text:
+            method === "generate"
+              ? `Created ${path} (generated, ${password.length} chars)`
+              : `Created ${path}`,
+          kind: "success",
+        })
+      } catch (err) {
+        showToast({ text: `Insert failed: ${errorMessage(err)}`, kind: "error" })
+      }
+    },
+    [reload, showToast]
+  )
+
+  const hasEntry = useCallback(
+    (path: string) => state.entries.some((e) => e.kind === "entry" && e.path === path),
+    [state.entries]
+  )
+
+  const cancelInsert = useCallback(() => dispatch({ type: "mode", mode: "normal" }), [])
+  const showInsertError = useCallback(
+    (text: string) => showToast({ text, kind: "error" }),
+    [showToast]
+  )
 
   // Selection can't move in edit mode, so the selected entry is the target.
   const editEntry = async () => {
@@ -196,13 +223,13 @@ export function App({ onExit, storeRoot }: Props) {
   const prompts: Record<ViewMode, PromptSpec | null> = {
     normal: null,
     help: null,
+    insert: null,
     filter: {
       label: "/",
       color: theme.lavender,
       value: state.filterQuery,
       submit: () => dispatch({ type: "mode", mode: "normal" }),
     },
-    insert: { label: "+", color: theme.green, value: state.draft, submit: insertEntry },
     edit: {
       label: `${selectedEntryPath} new password:`,
       color: theme.peach,
@@ -231,17 +258,20 @@ export function App({ onExit, storeRoot }: Props) {
     }
   }
 
-  useInput((input, key) => {
-    if (activePrompt) return onPromptKey(activePrompt, input, key)
-    const command = commandFor(input, key)
-    if (state.mode === "help") {
-      if (command === "help" || command === "back" || command === "quit") {
-        dispatch({ type: "mode", mode: "normal" })
+  useInput(
+    (input, key) => {
+      if (activePrompt) return onPromptKey(activePrompt, input, key)
+      const command = commandFor(input, key)
+      if (state.mode === "help") {
+        if (command === "help" || command === "back" || command === "quit") {
+          dispatch({ type: "mode", mode: "normal" })
+        }
+        return
       }
-      return
-    }
-    if (command) commands[command]()
-  })
+      if (command) commands[command]()
+    },
+    { isActive: state.mode !== "insert" }
+  )
 
   if (state.loading) {
     return (
@@ -267,7 +297,10 @@ export function App({ onExit, storeRoot }: Props) {
     )
   }
 
-  const entryCount = state.entries.filter((e) => e.kind === "entry").length
+  const entryCount = useMemo(
+    () => state.entries.filter((e) => e.kind === "entry").length,
+    [state.entries]
+  )
   const groupSize =
     selected?.kind === "group"
       ? state.entries.filter((e) => e.kind === "entry" && e.path.startsWith(selected.path + "/"))
@@ -304,13 +337,23 @@ export function App({ onExit, storeRoot }: Props) {
             height={listHeight}
             width={listWidth}
           />
-          <Preview
-            entry={selected}
-            groupSize={groupSize}
-            preview={preview}
-            revealed={revealed}
-            height={listHeight}
-          />
+          {state.mode === "insert" ? (
+            <InsertPanel
+              height={listHeight}
+              hasEntry={hasEntry}
+              onSubmit={insertEntry}
+              onCancel={cancelInsert}
+              onError={showInsertError}
+            />
+          ) : (
+            <Preview
+              entry={selected}
+              groupSize={groupSize}
+              preview={preview}
+              revealed={revealed}
+              height={listHeight}
+            />
+          )}
         </Box>
       )}
 

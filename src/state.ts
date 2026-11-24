@@ -12,7 +12,7 @@ export interface State {
 
   mode: ViewMode
   filterQuery: string
-  /** Path being typed in insert mode. */
+  /** Text being typed in edit mode. */
   draft: string
 
   /** Entry whose plaintext is on screen. Moving off it hides it implicitly. */
