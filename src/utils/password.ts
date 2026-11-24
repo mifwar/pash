@@ -7,9 +7,11 @@ export interface PasswordRules {
   numbers: boolean
   symbols: boolean
   excludeAmbiguous: boolean
+  excludeShellUnsafe: boolean
+  excludeChars: string
 }
 
-export type BooleanRuleKey = Exclude<keyof PasswordRules, "length">
+export type BooleanRuleKey = Exclude<keyof PasswordRules, "length" | "excludeChars">
 
 export interface RuleToggleSpec {
   key: BooleanRuleKey
@@ -26,6 +28,12 @@ export const PASSWORD_TOGGLES: readonly RuleToggleSpec[] = [
   { key: "numbers", label: "Numbers", hint: "0-9", isCharset: true },
   { key: "symbols", label: "Symbols", hint: "!@#$%^&*…", isCharset: true },
   { key: "excludeAmbiguous", label: "No ambiguous", hint: "exclude 0 O 1 l I", isCharset: false },
+  {
+    key: "excludeShellUnsafe",
+    label: "No shell chars",
+    hint: "exclude $&*(){}[]|;<>?",
+    isCharset: false,
+  },
 ]
 
 export const DEFAULT_PASSWORD_RULES: PasswordRules = {
@@ -35,6 +43,8 @@ export const DEFAULT_PASSWORD_RULES: PasswordRules = {
   numbers: true,
   symbols: true,
   excludeAmbiguous: false,
+  excludeShellUnsafe: false,
+  excludeChars: "",
 }
 
 export const MIN_PASSWORD_LENGTH = 8
@@ -45,6 +55,7 @@ const LOWER = "abcdefghijklmnopqrstuvwxyz"
 const NUMBERS = "0123456789"
 const SYMBOLS = "!@#$%^&*()-_=+[]{}|;:,.<>?"
 const AMBIGUOUS = /[0O1lI]/g
+const SHELL_UNSAFE = /[$&*(){}[\]|;<>?]/g
 
 export function adjustPasswordLength(rules: PasswordRules, delta: number): PasswordRules {
   const length = Math.min(MAX_PASSWORD_LENGTH, Math.max(MIN_PASSWORD_LENGTH, rules.length + delta))
@@ -65,12 +76,19 @@ export function togglePasswordRule(rules: PasswordRules, key: BooleanRuleKey): P
 }
 
 export function enabledCharsets(rules: PasswordRules): string[] {
-  const strip = (s: string) => (rules.excludeAmbiguous ? s.replace(AMBIGUOUS, "") : s)
+  const excluded = rules.excludeChars ? new Set(rules.excludeChars) : null
+  const filter = (s: string) => {
+    let out = s
+    if (rules.excludeAmbiguous) out = out.replace(AMBIGUOUS, "")
+    if (rules.excludeShellUnsafe) out = out.replace(SHELL_UNSAFE, "")
+    if (excluded) out = [...out].filter((c) => !excluded.has(c)).join("")
+    return out
+  }
   const sets: string[] = []
-  if (rules.uppercase) sets.push(strip(UPPER))
-  if (rules.lowercase) sets.push(strip(LOWER))
-  if (rules.numbers) sets.push(strip(NUMBERS))
-  if (rules.symbols) sets.push(SYMBOLS)
+  if (rules.uppercase) sets.push(filter(UPPER))
+  if (rules.lowercase) sets.push(filter(LOWER))
+  if (rules.numbers) sets.push(filter(NUMBERS))
+  if (rules.symbols) sets.push(filter(SYMBOLS))
   return sets.filter((s) => s.length > 0)
 }
 
@@ -82,7 +100,7 @@ export function enabledCharsets(rules: PasswordRules): string[] {
 export function generatePassword(rules: PasswordRules): string {
   const sets = enabledCharsets(rules)
   if (sets.length === 0) {
-    throw new Error("At least one character set must be enabled")
+    throw new Error("No characters available with current rules/exclusions")
   }
   const length = Math.min(MAX_PASSWORD_LENGTH, Math.max(MIN_PASSWORD_LENGTH, rules.length))
   const pool = sets.join("")

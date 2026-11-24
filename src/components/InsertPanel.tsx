@@ -17,7 +17,7 @@ export interface InsertState {
   step: "path" | "method"
   path: string
   method: InsertMethod
-  /** 0 = length row, 1..PASSWORD_TOGGLES.length = boolean toggle rows. */
+  /** 0 = length, 1..PASSWORD_TOGGLES.length = toggles, last = custom exclude chars. */
   ruleIndex: number
   rules: PasswordRules
   manualPassword: string
@@ -31,6 +31,7 @@ export type InsertAction =
   | { type: "move-rule"; delta: number }
   | { type: "length"; delta: number }
   | { type: "toggle-rule" }
+  | { type: "exclude-chars"; value: string }
   | { type: "manual-password"; value: string }
   | { type: "toggle-visibility" }
 
@@ -44,7 +45,8 @@ export const initialInsertState: InsertState = {
   showManualPassword: false,
 }
 
-const RULE_ROW_COUNT = 1 + PASSWORD_TOGGLES.length
+const EXCLUDE_ROW_INDEX = 1 + PASSWORD_TOGGLES.length
+const RULE_ROW_COUNT = EXCLUDE_ROW_INDEX + 1
 
 export function insertReducer(state: InsertState, action: InsertAction): InsertState {
   switch (action.type) {
@@ -68,6 +70,8 @@ export function insertReducer(state: InsertState, action: InsertAction): InsertS
       const rules = togglePasswordRule(state.rules, toggle.key)
       return rules === state.rules ? state : { ...state, rules }
     }
+    case "exclude-chars":
+      return { ...state, rules: { ...state.rules, excludeChars: action.value } }
     case "manual-password":
       return { ...state, manualPassword: action.value }
     case "toggle-visibility":
@@ -105,8 +109,13 @@ export const InsertPanel = React.memo(function InsertPanel({
       onError("Password must be non-empty")
       return
     }
-    const password =
-      state.method === "generate" ? generatePassword(state.rules) : state.manualPassword
+    let password: string
+    try {
+      password = state.method === "generate" ? generatePassword(state.rules) : state.manualPassword
+    } catch (err) {
+      onError(err instanceof Error ? err.message : String(err))
+      return
+    }
     submitting.current = true
     onSubmit(path, password, state.method).finally(() => {
       submitting.current = false
@@ -141,6 +150,12 @@ export const InsertPanel = React.memo(function InsertPanel({
     if (name === "enter") return submit()
 
     if (state.method === "generate") {
+      if (state.ruleIndex === EXCLUDE_ROW_INDEX) {
+        if (name === "up") return dispatch({ type: "move-rule", delta: -1 })
+        const value = editLine(state.rules.excludeChars, input, key)
+        if (value !== null) dispatch({ type: "exclude-chars", value })
+        return
+      }
       if (name === "down" || name === "j") return dispatch({ type: "move-rule", delta: 1 })
       if (name === "up" || name === "k") return dispatch({ type: "move-rule", delta: -1 })
       if (state.ruleIndex === 0) {
@@ -255,6 +270,7 @@ function ModeSelector({ method }: { method: InsertMethod }) {
 }
 
 function RulesList({ rules, ruleIndex }: { rules: PasswordRules; ruleIndex: number }) {
+  const excludeFocused = ruleIndex === EXCLUDE_ROW_INDEX
   const rows = [
     {
       label: "Length",
@@ -266,6 +282,11 @@ function RulesList({ rules, ruleIndex }: { rules: PasswordRules; ruleIndex: numb
       value: rules[t.key] ? "[x]" : "[ ]",
       hint: t.hint,
     })),
+    {
+      label: "Exclude",
+      value: excludeFocused ? `${rules.excludeChars}▌` : rules.excludeChars || "(none)",
+      hint: excludeFocused ? "type chars · ↑/↓ move" : "custom chars to omit",
+    },
   ]
 
   return (
@@ -279,7 +300,7 @@ function RulesList({ rules, ruleIndex }: { rules: PasswordRules; ruleIndex: numb
               {focused ? "▌ " : "  "}
             </Text>
             <Text color={focused ? theme.text : theme.subtext} bold={focused} backgroundColor={bg}>
-              {row.label.padEnd(14)}
+              {row.label.padEnd(16)}
             </Text>
             <Text
               color={focused ? theme.yellow : theme.lavender}

@@ -67,7 +67,7 @@ test("setPassword replaces only the password line", () => {
   assert.equal(setPassword("# Login: me", "new"), "# Login: me\nnew")
 })
 
-test("generatePassword honors length, charsets, and excludeAmbiguous", () => {
+test("generatePassword honors length, charsets, and exclusions", () => {
   const pw = generatePassword({ ...DEFAULT_PASSWORD_RULES, length: 32 })
   assert.equal(pw.length, 32)
   assert.match(pw, /[A-Z]/)
@@ -76,10 +76,8 @@ test("generatePassword honors length, charsets, and excludeAmbiguous", () => {
   assert.match(pw, /[^A-Za-z0-9]/)
 
   const noSym = generatePassword({
+    ...DEFAULT_PASSWORD_RULES,
     length: 40,
-    uppercase: true,
-    lowercase: true,
-    numbers: true,
     symbols: false,
     excludeAmbiguous: true,
   })
@@ -87,14 +85,33 @@ test("generatePassword honors length, charsets, and excludeAmbiguous", () => {
   assert.match(noSym, /^[A-Za-z0-9]+$/)
   assert.doesNotMatch(noSym, /[0O1lI]/)
 
+  const safeAndCustom = generatePassword({
+    ...DEFAULT_PASSWORD_RULES,
+    length: 64,
+    excludeShellUnsafe: true,
+    excludeChars: "@!#%aA",
+  })
+  assert.equal(safeAndCustom.length, 64)
+  assert.doesNotMatch(safeAndCustom, /[$&*(){}[\]|;<>?@!#%aA]/)
+
   assert.throws(() =>
     generatePassword({
-      length: 16,
+      ...DEFAULT_PASSWORD_RULES,
       uppercase: false,
       lowercase: false,
       numbers: false,
       symbols: false,
-      excludeAmbiguous: false,
+    })
+  )
+
+  assert.throws(() =>
+    generatePassword({
+      ...DEFAULT_PASSWORD_RULES,
+      uppercase: false,
+      lowercase: false,
+      symbols: false,
+      numbers: true,
+      excludeChars: "0123456789",
     })
   )
 })
@@ -125,6 +142,10 @@ test("insertReducer manages steps, length clamping, and keeps at least one chars
   const beforeLastToggle = s
   s = insertReducer(s, { type: "toggle-rule" })
   assert.equal(s, beforeLastToggle, "cannot disable the last remaining character class")
+
+  // Custom exclude characters
+  s = insertReducer(s, { type: "exclude-chars", value: "$@" })
+  assert.equal(s.rules.excludeChars, "$@")
 
   // Switching to manual and toggling visibility
   s = insertReducer(s, { type: "toggle-method" })
