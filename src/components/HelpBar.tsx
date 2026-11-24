@@ -23,8 +23,11 @@ const HINTS: Record<ViewMode, Array<[string, string]>> = {
     ["Esc", "clear"],
   ],
   insert: [
-    ["⏎", "generate"],
-    ["Esc", "cancel"],
+    ["Tab", "mode"],
+    ["j/k", "rule"],
+    ["Space / ←→", "change"],
+    ["⏎", "next / create"],
+    ["Esc", "back / cancel"],
   ],
   edit: [
     ["⏎", "save"],
@@ -34,7 +37,7 @@ const HINTS: Record<ViewMode, Array<[string, string]>> = {
 }
 
 /** Bottom keybinding strip for the current mode. */
-export function HelpBar({ mode }: { mode: ViewMode }) {
+export const HelpBar = React.memo(function HelpBar({ mode }: { mode: ViewMode }) {
   return (
     <Box paddingX={1}>
       <Text color={theme.overlay} wrap="truncate">
@@ -47,4 +50,4 @@ export function HelpBar({ mode }: { mode: ViewMode }) {
       </Text>
     </Box>
   )
-}
+})
