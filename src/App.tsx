@@ -86,6 +86,10 @@ export function App({ onExit, storeRoot }: Props) {
             .map((entry) => ({ entry })),
     [searching, fuse, state.entries, state.filterQuery, state.collapsed]
   )
+  const entryCount = useMemo(
+    () => state.entries.filter((e) => e.kind === "entry").length,
+    [state.entries]
+  )
   const selected = rows[state.selectedIndex]?.entry ?? null
   const selectedEntryPath = selected?.kind === "entry" ? selected.path : null
   const preview = usePreview(selectedEntryPath, previewEpoch)
@@ -297,10 +301,6 @@ export function App({ onExit, storeRoot }: Props) {
     )
   }
 
-  const entryCount = useMemo(
-    () => state.entries.filter((e) => e.kind === "entry").length,
-    [state.entries]
-  )
   const groupSize =
     selected?.kind === "group"
       ? state.entries.filter((e) => e.kind === "entry" && e.path.startsWith(selected.path + "/"))
